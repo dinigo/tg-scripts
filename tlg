@@ -1,0 +1,10 @@
+#!/usr/bin/expect
+set folder [lindex $argv 0]
+set user [lindex $argv 1]
+set text [lindex $argv 2]
+spawn $folder/telegram -k $folder/tg.pub
+expect ">"
+send "msg $user $text\r"
+expect "Sent"
+send "quit\r"
+expect eof

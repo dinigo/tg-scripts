@@ -1,0 +1,4 @@
+#!/bin/bash
+USER="Jhon_Doe"
+MESSAGE="💿 Downloaded: ${TR_TORRENT_NAME}"
+/etc/telegram/tlg ${USER} "${MESSAGE}"
