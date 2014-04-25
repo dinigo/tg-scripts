@@ -8,3 +8,4 @@ sudo chown -R root:root ~/telegram
 sudo chmod -R 777 ~/telegram
 sudo mv ~/telegram /etc/
 sudo ln -s /etc/telegram/telegram /usr/bin/telegram
+mv /etc/telegram/tg-server.pub /etc/telegram/server.pub
