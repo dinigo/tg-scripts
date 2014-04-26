@@ -1,8 +1,23 @@
 #!/usr/bin/expect
-set folder [lindex $argv 0]
-set user [lindex $argv 1]
-set text [lindex $argv 2]
-spawn $folder/telegram -k $folder/tg.pub
+
+set folder ""
+switch -- [llength $argv] {
+    2 {
+        set user [lindex $argv 1]
+        set text [lindex $argv 2]
+    }
+    3 {
+        set folder [lindex $argv 0]
+        set user [lindex $argv 1]
+        set text [lindex $argv 2]
+    }
+    default {
+        send_user "Usage: tlg <username> <text>\n"
+        send_user "Usage: tlg </path/to/telegram/folder/> <username> <text>\n"
+        exit 1
+    }
+}
+spawn ${folder}telegram
 expect ">"
 send "msg $user $text\r"
 expect "Sent"
