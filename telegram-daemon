@@ -99,6 +99,7 @@ while true {
             expect $prompt
             foreach message $lines_list {
                 set message [string trim $message]
+                # Filter feedbacfeedback
                 if {[string first "messages marked as read" $message] == -1} {
                 if {[string first "*** t =" $message] == -1} {
                 if {[string first "<<<" $message] == -1} {
