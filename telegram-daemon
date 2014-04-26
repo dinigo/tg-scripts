@@ -1,7 +1,10 @@
 #!/usr/bin/expect
+
+# Gloval variables
 set user "admin"
 set terminator "response"
-set folder "/etc/telegram"
+set folder ""
+set prompt "> "
 
 switch -- [llength $argv] {
     1 { 
@@ -11,17 +14,16 @@ switch -- [llength $argv] {
         set user [lindex $argv 0]
         set folder [lindex $arg 1]
     }
+    0 {
+    }
     default {
         send_user "Usage: ./telegram-daemon <username>\n"
-        send_user "Usage: ./telegram-daemon <username> <telegram/folder>\n"
+        send_user "Usage: ./telegram-daemon <username> <telegram/folder/>\n"
         exit 1
     }
 }
 send_user "Using telegram-folder: $folder"
-    
-if {[llength $argv] == 2} {
-    
-}
+
 # Remove ansi escape sequences
 proc un_ansi {data} {
     set txt {}
@@ -43,69 +45,75 @@ proc un_ansi {data} {
             default {
                 set match ${data}
                 append txt ${match}
-           }
-       }
-       set data [string range ${data} [string length ${match}] end]
-   }
+            }
+        }
+        set data [string range ${data} [string length ${match}] end]
+    }
+    # remove white spaces not needed anymore
+    regsub -all -- "\t+" ${txt} { } txt
+    regsub -all -- " +" ${txt} { } txt
+    regsub -all -nocase -- "\n+" [string trim ${txt}] "\n" txt
+    return ${txt}
+}
 
-   # remove white spaces not needed anymore
-   regsub -all -- "\t+" ${txt} { } txt
-   regsub -all -- " +" ${txt} { } txt
-   regsub -all -nocase -- "\n+" [string trim ${txt}] "\n" txt
-   return ${txt}
- }
-
-spawn $folder/telegram -k $folder/tg-server.pub
+spawn ${folder}telegram
 
 while true {
+    expect {
 
-	expect {
+        "Telegram-client" {
+            sleep 2
+            send "msg Daniel_Iñigo Telegram started\r"
+            expect "Sent:*\r"
+        }
 
-		# When the program begins
-		"Telegram-client*\r" {
-			sleep 1
-			expect "User"
-			send "msg $user Starting Telegram\r"
-			expect "Sent:"
-		}
+        # When it receives a message
+        -re {\[\d{2}:\d{2}\].*>>>.*\n} {
+            set line [un_ansi $expect_out(0,string)]]
+            # Get the user
+            regexp -- {\[\d{2}:\d{2}\].*>>>} $line user
+            regsub -all -- {\[\d{2}:\d{2}\]\s|\s>>>} $user {} user
+            regsub -all -- {\s} $user "_" user
+            # Get the command
+            regexp -- {>>>.*$} $line command
+            regsub -all -- {>>>\s|\]$|\r.*} $command {} command
+            # Execute
+            send "mark_read $user\r"
+            send "$command\r"
+            if {$line == "quit"} {
+                exit 0
+            }
+            sleep 1
+            send "$terminator\r"
+            expect "${prompt}${command}\r"
+        }
 
-		# When it receives a message
-		">>>*\r" {
-			send "mark_read $user\r"
-			send "RECEIVED MESSAGE\r"
-			set line [lindex [split $expect_out(0,string) "\r"] 0]
-			set line [string trim $line]
-			set line [string trimleft $line  ">>>"]
-			set line [string trimright $line "m" ]	
-			set line [string trim $line]
-			if {$line == "quit"} {
-				exit 0
-			}
-			expect "Sent:"
-			send "$line\r"
-            expect ">"
-            sleep 0.5
-			send "$terminator\r"
-		}
-
-		# For any other line that's not a sent message
-		"$terminator\r" {
-			set line [string trim $expect_out(buffer)]
+        # For any other line that's not a sent message
+        "$terminator\r" {
+            set line [string trim $expect_out(buffer)]
             set line [un_ansi $line]
-			set line [string trim $line]
-			set line [string trimright $line "$terminator\r"]]
-			set lines_list [split $line "\r"]
-			set lines_list [lrange $lines_list 2 [expr [llength $lines_list] - 2]]
-            expect "> "
+#            send [un_ansi $expect_out(0,string)]
+            set line [string trimright $line "$terminator\r"]]
+            set lines_list [split $line "\r"]
+            set lines_list [lrange $lines_list 0 [expr [llength $lines_list] - 2]]
+            expect $prompt
             foreach message $lines_list {
+                set message [string trim $message]
                 if {[string first "messages marked as read" $message] == -1} {
-                    set message [string trim $message]
+                if {[string first "*** t =" $message] == -1} {
+                if {[string first "<<<" $message] == -1} {
+                if {[string first "User*is now o*line" $message] == -1} {
+                if {$message != ">"} {
                     send "msg $user $message\r"
-                    expect "Sent:"
+                    expect "Sent:.*\n"
+                }
+                }
+                }
+                }
                 }
             }
-		}
-	}
+        }
+    }
 }
 send "quit\r"
 expect eof
