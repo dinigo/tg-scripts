@@ -18,6 +18,7 @@ switch -- [llength $argv] {
     }
 }
 spawn ${folder}telegram
+sleep 2
 expect ">"
 send "msg $user $text\r"
 expect "Sent"
